@@ -1,15 +1,15 @@
-"""Unit test methods for mltemplate.utils.logging utility module."""
+"""Unit test methods for mmpie1.utils.logging utility module."""
 import logging
 import os
 
-from mltemplate import Config
-from mltemplate.utils import default_logger
+from mmpie1 import Config
+from mmpie1.utils import default_logger
 
 
 def test_logger():
     logs_filename = Config()["FILE_PATHS"]["UNITTEST_LOGS"]
     logger = default_logger(
-        name="mltemplate", stream_level=logging.DEBUG, file_level=logging.DEBUG, file_name=logs_filename
+        name="mmpie1", stream_level=logging.DEBUG, file_level=logging.DEBUG, file_name=logs_filename
     )
 
     logger.debug("debug log")

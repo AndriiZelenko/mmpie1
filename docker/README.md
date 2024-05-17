@@ -59,10 +59,10 @@ similar to:
 +-----------------------------------------------------------------------------+
 ```
 
-# Mltemplate
+# Mmpie1
 
-There are a number of starter images provided to package and deploy Mltemplate, provided for your convenience. All the 
-Mltemplate-related images are given in the associated [Dockerfile](local/Dockerfile), using a multi-stage build. 
+There are a number of starter images provided to package and deploy Mmpie1, provided for your convenience. All the 
+Mmpie1-related images are given in the associated [Dockerfile](local/Dockerfile), using a multi-stage build. 
 The individual stages can be built and cached separately, and are described below.
 
 ## GPU (Nvidia) Support
@@ -81,23 +81,23 @@ above example).
 Once you have the appropriate Dockerfile, build the image:
 
 ```commandline
-docker build -t nvidia/cuda:mltemplate -f docker/nvidia_12.2.2/Dockerfile .
+docker build -t nvidia/cuda:mmpie1 -f docker/nvidia_12.2.2/Dockerfile .
 ```
 
 ## Release Image
 
 The release image is split into a multi-stage build, with the first stage installing all the dependencies required to
-run Mltemplate as a base image, without installing Mltemplate itself. This stage should stay cached for subsequent 
+run Mmpie1 as a base image, without installing Mmpie1 itself. This stage should stay cached for subsequent 
 rebuilds of the base image, and should only have to be rebuilt when the package dependencies change.
 
 To build the release image, make sure the first line in the [associated Dockerfile](release/Dockerfile) 
 matches your build environment. I.e. for an Ubuntu 22.04 CPU-only build, uncomment and use the `FROM ubuntu:22.04`; for 
-a GPU build, use the image built above, i.e. uncomment and use the `FROM nvidia/cuda:mltemplate` line. 
+a GPU build, use the image built above, i.e. uncomment and use the `FROM nvidia/cuda:mmpie1` line. 
 
 Then build the image:
 
 ```commandline
-docker build -t mltemplate:release -f docker/release/Dockerfile .
+docker build -t mmpie1:release -f docker/release/Dockerfile .
 ```
 
 ## Dev Image
@@ -106,21 +106,21 @@ The dev image additionally installs all the dev dependencies— for example, tho
 tests— and is built on top of the release image.
 
 ```commandline 
-docker build -t mltemplate:dev -f docker/dev/Dockerfile .
+docker build -t mmpie1:dev -f docker/dev/Dockerfile .
 ```
 
 You may then run this image interactively, and run the unit tests, for example:
 
 ```commandline
-docker run -it mltemplate:dev /bin/bash
+docker run -it mmpie1:dev /bin/bash
 rye run tests
 ```
 
 The same may be accomplished by building the test stage:
 
 ```commandline
-docker build -t mltemplate:test -f docker/test/Dockerfile .
-docker run mltemplate:test
+docker build -t mmpie1:test -f docker/test/Dockerfile .
+docker run mmpie1:test
 ```
 
 Which may be used to automate the testing of the dockerized application.
@@ -131,19 +131,19 @@ Finally, the backend stage can be used to run all the required backend servers i
 it locally on your own machine. It may be built with:
 
 ```commandline
-docker build -t mltemplate:backend -f docker/backend/Dockerfile .
+docker build -t mmpie1:backend -f docker/backend/Dockerfile .
 ```
 
 And then subsequently run with:
 
 ```commandline
-docker run mltemplate:backend
+docker run mmpie1:backend
 ```
 
 If you wish to run the servers with GPU support, pass in the `--gpus all` flag:
 
 ```commandline
-docker run --gpus all mltemplate:backend
+docker run --gpus all mmpie1:backend
 ```
 
 ## Docker Compose 

@@ -26,23 +26,23 @@ install:          ## Install the project in dev mode.
 
 .PHONY: fmt
 fmt:              ## Format code using black & isort.
-	$(ENV_PREFIX)isort -l 120 mltemplate/
+	$(ENV_PREFIX)isort -l 120 mmpie1/
 	$(ENV_PREFIX)isort -l 120 tests/
 	$(ENV_PREFIX)black -l 120 project_name/
 	$(ENV_PREFIX)black -l 120 tests/
 
 .PHONY: lint
 lint:             ## Run pylint, isort & black linters.
-	$(ENV_PREFIX)pylint mltemplate/
+	$(ENV_PREFIX)pylint mmpie1/
 	$(ENV_PREFIX)pylint --disable=protected-access tests/
-	${ENV_PREFIX}isort -l 120 --check mltemplate/
+	${ENV_PREFIX}isort -l 120 --check mmpie1/
 	${ENV_PREFIX}isort -l 120 --check tests/
-	$(ENV_PREFIX)black -l 120 --check mltemplate/
+	$(ENV_PREFIX)black -l 120 --check mmpie1/
 	$(ENV_PREFIX)black -l 120 --check tests/
 
 .PHONY: test
 test: lint        ## Run tests and generate coverage report.
-	$(ENV_PREFIX)pytest -rs --cov=mltemplate --maxfail=1 --cov-report term-missing -W ignore::DeprecationWarning tests/
+	$(ENV_PREFIX)pytest -rs --cov=mmpie1 --maxfail=1 --cov-report term-missing -W ignore::DeprecationWarning tests/
 	$(ENV_PREFIX)coverage xml
 	$(ENV_PREFIX)coverage html
 

@@ -1,0 +1,2 @@
+_target_: mmpie1.models.cnn.CNN
+name: CNN

@@ -16,10 +16,10 @@ echo "Project Description: $description";
 
 echo "Renaming project..."
 
-original_author="JeremyWurbs"
-original_name="mltemplate"
-original_urlname="https://github.com/jeremywurbs/mltemplate/"
-original_description="An end-to-end starter template for machine learning projects."
+original_author="AndriiZelenko"
+original_name="mmpie1"
+original_urlname="https://github.com/jeremywurbs/mmpie1/"
+original_description="Awesome mmpie1 created by AndriiZelenko"
 
 for filename in $(git ls-files)
 do
@@ -35,7 +35,7 @@ do
     echo "Renamed $filename"
 done
 
-mv mltemplate $name
+mv mmpie1 $name
 mv _README.md README.md -f
 
 # This command runs only once on GHA!

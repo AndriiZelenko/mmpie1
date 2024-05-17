@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Mltemplate'
-copyright = '2024, JeremyWurbs'
-author = 'JeremyWurbs'
+project = 'Mmpie1'
+copyright = '2024, AndriiZelenko'
+author = 'AndriiZelenko'
 
 # -- Path setup --------------------------------------------------------------
 

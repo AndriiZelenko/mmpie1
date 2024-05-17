@@ -1,9 +1,9 @@
-"""Unit test methods for mltemplate.utils.conversions utility module."""
+"""Unit test methods for mmpie1.utils.conversions utility module."""
 import numpy as np
 import pytest
 from PIL.Image import Image
 
-from mltemplate.utils import (
+from mmpie1.utils import (
     ascii_to_pil,
     bytes_to_pil,
     cv2_to_pil,

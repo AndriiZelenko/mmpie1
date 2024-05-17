@@ -1,9 +1,9 @@
-"""Unit test methods for mltemplate.utils.timer_collection utility module."""
+"""Unit test methods for mmpie1.utils.timer_collection utility module."""
 import time
 
 import pytest
 
-from mltemplate.utils import TimerCollection
+from mmpie1.utils import TimerCollection
 
 
 def test_timer_collection():

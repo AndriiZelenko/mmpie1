@@ -1,10 +1,10 @@
-"""Unit test methods for the mltemplate.core.config.Config class."""
+"""Unit test methods for the mmpie1.core.config.Config class."""
 import os
 
 import pytest
 
-from mltemplate import Config
-from mltemplate_setup import initial_mltemplate_setup
+from mmpie1 import Config
+from mmpie1_setup import initial_mmpie1_setup
 
 
 def test_functionality():
@@ -15,7 +15,7 @@ def test_functionality():
 
 
 def test_configuration():
-    initial_mltemplate_setup()
+    initial_mmpie1_setup()
     config = Config()
     dirs = (
         config["DIR_PATHS"]["ROOT"],

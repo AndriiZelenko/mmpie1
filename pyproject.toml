@@ -1,9 +1,9 @@
 [project]
-name = "mltemplate"
+name = "mmpie1"
 version = "0.1.0"
-description = "An end-to-end starter template for machine learning projects."
+description = "Awesome mmpie1 created by AndriiZelenko"
 authors = [
-    { name = "JeremyWurbs" }
+    { name = "AndriiZelenko" }
 ]
 dependencies = [
     "torch>=2.1.2",
@@ -28,14 +28,14 @@ readme = "README.md"
 requires-python = ">= 3.10"
 
 [project.scripts]
-hello = "mltemplate:hello"
-train = "mltemplate.scripts.train:entry"
-mltemplate_setup = "initial_setup:initial_mltemplate_setup"
+hello = "mmpie1:hello"
+train = "mmpie1.scripts.train:entry"
+mmpie1_setup = "initial_setup:initial_mmpie1_setup"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-discord_client = "python mltemplate.backend.discord.discord_client:run_discord_client"
+discord_client = "python mmpie1.backend.discord.discord_client:run_discord_client"
 
 [tool.rye]
 managed = true
@@ -54,71 +54,71 @@ dev-dependencies = [
 
 [tool.rye.scripts]
 lint = {chain = [
-    "echo:pylint:mltemplate",
-    "lint:pylint:mltemplate",
+    "echo:pylint:mmpie1",
+    "lint:pylint:mmpie1",
     "echo:pylint:tests",
     "lint:pylint:tests",
-    "echo:isort:check:mltemplate",
-    "lint:isort:check:mltemplate",
+    "echo:isort:check:mmpie1",
+    "lint:isort:check:mmpie1",
     "echo:isort:check:tests",
     "lint:isort:check:tests",
-    "echo:black:check:mltemplate",
-    "lint:black:check:mltemplate",
+    "echo:black:check:mmpie1",
+    "lint:black:check:mmpie1",
     "echo:black:check:tests",
     "lint:black:check:tests"]}
-"echo:pylint:mltemplate" = "echo 'pylint mltemplate/'"
-"lint:pylint:mltemplate" = "pylint mltemplate/"
+"echo:pylint:mmpie1" = "echo 'pylint mmpie1/'"
+"lint:pylint:mmpie1" = "pylint mmpie1/"
 "echo:pylint:tests" = "echo 'pylint --disable=protected-access tests/'"
 "lint:pylint:tests" = "pylint --disable=protected-access tests/"
-"echo:isort:check:mltemplate" = "echo '\nisort -l 120 --check mltemplate/'"
-"lint:isort:check:mltemplate" = "isort -l 120 --check mltemplate/"
+"echo:isort:check:mmpie1" = "echo '\nisort -l 120 --check mmpie1/'"
+"lint:isort:check:mmpie1" = "isort -l 120 --check mmpie1/"
 "echo:isort:check:tests" = "echo '\nisort -l 120 --check tests/'"
 "lint:isort:check:tests" = "isort -l 120 --check tests/"
-"echo:black:check:mltemplate" = "echo '\nblack -l 120 --check mltemplate/'"
-"lint:black:check:mltemplate" = "black -l 120 --check mltemplate/"
+"echo:black:check:mmpie1" = "echo '\nblack -l 120 --check mmpie1/'"
+"lint:black:check:mmpie1" = "black -l 120 --check mmpie1/"
 "echo:black:check:tests" = "echo '\nblack -l 120 --check tests/'"
 "lint:black:check:tests" = "black -l 120 --check tests/"
 format = {chain = [
-    "echo:isort:mltemplate",
-    "format:isort:mltemplate",
-    "echo:black:format:mltemplate",
-    "format:black:format:mltemplate",
+    "echo:isort:mmpie1",
+    "format:isort:mmpie1",
+    "echo:black:format:mmpie1",
+    "format:black:format:mmpie1",
     "echo:isort:tests",
     "format:isort:tests",
     "echo:black:format:tests",
     "format:black:format:tests"] }
-"echo:isort:mltemplate" = "echo '\nisort -l 120 mltemplate/'"
-"format:isort:mltemplate" = "isort -l 120 mltemplate/"
-"echo:black:format:mltemplate" = "echo '\nblack -l 120 mltemplate/'"
-"format:black:format:mltemplate" = "black -l 120 mltemplate/"
+"echo:isort:mmpie1" = "echo '\nisort -l 120 mmpie1/'"
+"format:isort:mmpie1" = "isort -l 120 mmpie1/"
+"echo:black:format:mmpie1" = "echo '\nblack -l 120 mmpie1/'"
+"format:black:format:mmpie1" = "black -l 120 mmpie1/"
 "echo:isort:tests" = "echo '\nisort -l 120 tests/'"
 "format:isort:tests" = "isort -l 120 tests/"
 "echo:black:format:tests" = "echo '\nblack -l 120 tests/'"
 "format:black:format:tests" = "black -l 120 tests/"
 test = {chain = ["echo:test", "test:pytest"]}
-"echo:test" = "echo 'pytest -rs --cov=mltemplate --maxfail=1 --cov-report term-missing -W ignore::DeprecationWarning tests/'"
-"test:pytest" = "pytest -rs --cov=mltemplate --maxfail=1 --cov-report term-missing -W ignore::DeprecationWarning tests/"
+"echo:test" = "echo 'pytest -rs --cov=mmpie1 --maxfail=1 --cov-report term-missing -W ignore::DeprecationWarning tests/'"
+"test:pytest" = "pytest -rs --cov=mmpie1 --maxfail=1 --cov-report term-missing -W ignore::DeprecationWarning tests/"
 docs = {chain = ["echo:compile-docs", "docs:compile-docs", "echo:build-html-docs", "docs:build-html-docs", "echo:build-pdf-docs", "docs:build-pdf-docs"]}
-"echo:compile-docs" = "echo 'sphinx-apidoc --force -o docs mltemplate/'"
-"docs:compile-docs" = "sphinx-apidoc --force -o docs mltemplate/"
+"echo:compile-docs" = "echo 'sphinx-apidoc --force -o docs mmpie1/'"
+"docs:compile-docs" = "sphinx-apidoc --force -o docs mmpie1/"
 "echo:build-html-docs" = "echo 'make -C docs/ clean html'"
 "docs:build-html-docs" = "make -C docs/ clean html"
 "echo:build-pdf-docs" = "echo 'make -C docs/ simplepdf'"
 "docs:build-pdf-docs" = "make -C docs/ simplepdf"
-graph-dependencies = {chain = ["echo:dependency-graph", "dependency-graph:mltemplate"]}
-"echo:dependency-graph" = "echo 'pyreverse -o png --colorized --max-color-depth 3 --no-standalone mltemplate'"
-"dependency-graph:mltemplate" = "pyreverse -o png --colorized --max-color-depth 3 --no-standalone mltemplate"
-mlflow_server = "mlflow server --backend-store-uri ${HOME}/mltemplate/mlflow --port 8080"
-gateway_server = "python -m gunicorn -w 1 -b localhost:8081 -k uvicorn.workers.UvicornWorker \"mltemplate.backend.gateway.gateway_server:app()\""
-training_server = "python -m gunicorn -w 4 -b localhost:8082 -k uvicorn.workers.UvicornWorker \"mltemplate.backend.training.training_server:app()\""
-deployment_server = "python -m gunicorn -w 1 -b localhost:8083 -k uvicorn.workers.UvicornWorker \"mltemplate.backend.deployment.deployment_server:app()\""
-discord_client = "python mltemplate/backend/discord/discord_client.py"
+graph-dependencies = {chain = ["echo:dependency-graph", "dependency-graph:mmpie1"]}
+"echo:dependency-graph" = "echo 'pyreverse -o png --colorized --max-color-depth 3 --no-standalone mmpie1'"
+"dependency-graph:mmpie1" = "pyreverse -o png --colorized --max-color-depth 3 --no-standalone mmpie1"
+mlflow_server = "mlflow server --backend-store-uri ${HOME}/mmpie1/mlflow --port 8080"
+gateway_server = "python -m gunicorn -w 1 -b localhost:8081 -k uvicorn.workers.UvicornWorker \"mmpie1.backend.gateway.gateway_server:app()\""
+training_server = "python -m gunicorn -w 4 -b localhost:8082 -k uvicorn.workers.UvicornWorker \"mmpie1.backend.training.training_server:app()\""
+deployment_server = "python -m gunicorn -w 1 -b localhost:8083 -k uvicorn.workers.UvicornWorker \"mmpie1.backend.deployment.deployment_server:app()\""
+discord_client = "python mmpie1/backend/discord/discord_client.py"
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["mltemplate"]
+packages = ["mmpie1"]
 
 [tool.isort]
 profile = "black"
