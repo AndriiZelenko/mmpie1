@@ -241,3 +241,51 @@ def cv2_to_pil(image: np.ndarray) -> Image:
           pil_image = cv2_to_pil(cv2_image)
     """
     return ndarray_to_pil(image, image_format="BGR")
+
+
+def yolo_to_coco(bounding_box: np.ndarray, image_size: tuple[int, int]) -> np.ndarray:
+    """Convert YOLO bounding box to COCO format.
+
+    Args:
+        bounding_box: The input bounding box in YOLO format.
+        image_size: The size of the image.
+
+    Returns:
+        The bounding box in COCO format.
+
+    Example::
+
+          from mmpie1.utils import yolo_to_coco
+
+          bounding_box = np.array([0.5, 0.5, 0.5, 0.5])
+          image_size = (100, 100)
+          coco_bounding_box = yolo_to_coco(bounding_box, image_size)
+    """
+    clas_idx, x_center, y_center, width, height = bounding_box
+    x_center, y_center, width, height = x_center * image_size[0], y_center * image_size[1], width * image_size[0], height * image_size[1]
+    x_min, y_min, x_max, y_max = x_center - width / 2, y_center - height / 2, x_center + width / 2, y_center + height / 2
+    return np.array([clas_idx, x_min, y_min, x_max, y_max])
+
+
+def coco_to_yolo(bounding_box: np.ndarray, image_size: tuple[int, int]) -> np.ndarray:
+    """Convert COCO bounding box to YOLO format.
+
+    Args:
+        bounding_box: The input bounding box in COCO format.
+        image_size: The size of the image.
+
+    Returns:
+        The bounding box in YOLO format.
+
+    Example::
+
+          from mmpie1.utils import coco_to_yolo
+
+          bounding_box = np.array([0.5, 0.5, 0.5, 0.5])
+          image_size = (100, 100)
+          yolo_bounding_box = coco_to_yolo(bounding_box, image_size)
+    """
+    clas_idx, x_min, y_min, x_max, y_max = bounding_box
+    x_center, y_center, width, height = (x_min + x_max) / 2, (y_min + y_max) / 2, x_max - x_min, y_max - y_min
+    x_center, y_center, width, height = x_center / image_size[0], y_center / image_size[1], width / image_size[0], height / image_size[1]
+    return np.array([clas_idx, x_center, y_center, width, height])

@@ -1,0 +1,32 @@
+
+
+TrainPath: '/data/diskd/mindtrace/music_magpie/v2/global_phone_data/25-05-2024/train'
+ValPath: '/data/diskd/mindtrace/music_magpie/v2/global_phone_data/25-05-2024/val'
+
+
+Augmentations:
+  HorizontalFlipProb:  0.5 
+  VerticalFlipProb:  0.5
+  ShiftLimit:  0.1
+  ScaleLimit:  0.1
+  RotateLimit:  30
+  ShiftScaleRotateProb:  0.5
+  BrightnessContrastProb:  0.2
+  RGBShiftProb:  0.2
+  HSVProb:  0.2
+  CLAHEProb:  0.1
+  GaussNoiseProb:  0.2
+  BlurLimit:  3
+  BlurProb:  0.5
+  MedianBlurLimit:  3
+  MedianBlurProb:  0.5
+  MinVisiability:  0.5
+  LongestMaxSize:  1333
+
+Preprocessing:
+  MinSize: 800
+  MaxSize: 1333
+  Mean: [0.485, 0.456, 0.406]
+  Std: [0.229, 0.224, 0.225]
+
+

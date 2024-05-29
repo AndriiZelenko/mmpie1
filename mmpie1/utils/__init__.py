@@ -11,6 +11,8 @@ from mmpie1.utils.conversions import (
     pil_to_ndarray,
     pil_to_tensor,
     tensor_to_pil,
+    yolo_to_coco,
+    coco_to_yolo
 )
 from mmpie1.utils.dynamic import instantiate_target
 from mmpie1.utils.logging import default_logger
