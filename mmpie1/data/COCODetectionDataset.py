@@ -19,23 +19,30 @@ class CocoDetection(torchvision.datasets.CocoDetection):
 
         img, target = super().__getitem__(idx)
         boxes = [t['bbox'] + [t['category_id']] for t in target]
-
+        mask = np.ones((img.size[1], img.size[0]), dtype=np.float32)
         img = np.array(img)
         boxes = np.array(boxes)
         
-        # For logging might be useful
-        original_image = img.copy()
-        original_boxes = boxes.copy()
+ 
+        if self.return_original:
+            original_image = img.copy()
+            original_boxes = boxes.copy()
+        else:
+            original_image = None
+            original_boxes = None
+
 
         augmentation_start_time = time.time()
         if self.augmentations:
             img, boxes = self.augmentations(image=img, bboxes=boxes)
+            
         augmentation_end_time = time.time()
-
         if self.preprocessing:
-            img, boxes = self.preprocessing(image=img, bboxes=boxes)
+            img, boxes,labels, mask = self.preprocessing(image=img, bboxes=boxes)
         end_time = time.time()
 
+
+        
         if self.profiling_req:
             profiling = {
                 'getitem': augmentation_start_time - start_time,
@@ -43,10 +50,14 @@ class CocoDetection(torchvision.datasets.CocoDetection):
                 'preprocessing': end_time - augmentation_end_time,
                 'whole': end_time - start_time
             }
-            if self.return_original:
-                return img, boxes, profiling, original_image, original_boxes
-            return img, boxes, profiling
-        
-        if self.return_original:
-            return img, boxes, original_image, original_boxes
-        return img, boxes
+        else:
+            profiling = {}
+
+        out = {'pixel_values': img, 'boxes': boxes, 'labels': labels, 'pixel_mask': mask, 'original_image': original_image, 'original_boxes': original_boxes, 'profiling': profiling}
+
+        return out
+    
+    # TODO: implement this method
+    def calculate_stats(self):
+        print('TODO datasets stats calculation')
+        pass
