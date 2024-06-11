@@ -13,7 +13,6 @@ import torchvision
 import time
 import hydra
 
-
 @hydra.main(config_path='/home/andrii/mmpie1/mmpie1/configs/dataset', config_name='codetr_conf.yaml')
 def main(cfg):
     
