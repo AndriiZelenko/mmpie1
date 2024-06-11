@@ -25,7 +25,7 @@ class ResizeAndPadTransform:
         original_size = image.shape[:2] 
         h, w = original_size
 
-        # Create mask of original image size with all ones
+
         mask = np.ones((h, w), dtype=np.float32)
         
         scale = min(self.max_size / max(h, w), self.min_size / min(h, w))
@@ -83,16 +83,16 @@ def resize_and_pad_to_target(image, target_size):
     scale = min(target_size[0] / original_height, target_size[1] / original_width)
     new_height, new_width = int(original_height * scale), int(original_width * scale)
     
-    # Resize the image
+    
     resized_image = TF.interpolate(image.unsqueeze(0), size=(new_height, new_width), mode='bilinear', align_corners=False).squeeze(0)
     
-    # Calculate padding
+    
     pad_height = target_size[0] - new_height
     pad_width = target_size[1] - new_width
     pad_top, pad_bottom = pad_height // 2, pad_height - pad_height // 2
     pad_left, pad_right = pad_width // 2, pad_width - pad_width // 2
     
-    # Pad the image
+    
     padded_image = TF.pad(resized_image, (pad_left, pad_right, pad_top, pad_bottom), value=0)
     
     return padded_image, scale, (pad_top, pad_left)
@@ -102,10 +102,10 @@ def resize_boxes(boxes, scale, padding):
     Resize and pad bounding boxes.
     """
     pad_top, pad_left = padding
-    boxes[:, [0, 2]] *= scale  # Scale x coordinates
-    boxes[:, [1, 3]] *= scale  # Scale y coordinates
-    boxes[:, 0] += pad_left  # Add padding to x coordinates
-    boxes[:, 1] += pad_top   # Add padding to y coordinates
+    boxes[:, [0, 2]] *= scale  
+    boxes[:, [1, 3]] *= scale  
+    boxes[:, 0] += pad_left  
+    boxes[:, 1] += pad_top   
     return boxes
 
 
@@ -138,7 +138,7 @@ class Preprocessor:
             labels = []
         
 
-        # Convert to PyTorch tensors
+        
         boxes_tensor = torch.tensor(bboxes, dtype=torch.float32)
         labels_tensor = torch.tensor(labels, dtype=torch.int64)
         mask_tensor  = torch.tensor(mask, dtype = torch.float32)
