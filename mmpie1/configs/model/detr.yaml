@@ -1,6 +1,9 @@
 
 
 
+num_queries: 100
+
+
 FeatureExtractorEncoder:
   Backbone: resnet50
   Pretrained: True
@@ -11,12 +14,24 @@ TransformerEncoder:
   temperature: 10000
   pos_encoding_type : 'sine'
   embedded_dimension: 256
-  num_encoder_layers: 6
+  num_layers: 6
   num_attention_heads: 8
-  encoder_ffn_dimension: 2048
+  ffn_dimension: 2048
   dropout_rate: 0.1
   attention_dropout_rate: 0.1
-  activation_droput_rate: 0.1
+  activation_dropout_rate: 0.1
+  layer_dropout_rate: 0.1
+  init_std: 0.02
+  xavier_std: 1.0
+
+TransformerDecoder:
+  embedded_dimension: 256
+  num_layers: 6
+  num_attention_heads: 8
+  ffn_dimension: 2048
+  dropout_rate: 0.1
+  attention_dropout_rate: 0.1
+  activation_dropout_rate: 0.1
   layer_dropout_rate: 0.1
   init_std: 0.02
   xavier_std: 1.0

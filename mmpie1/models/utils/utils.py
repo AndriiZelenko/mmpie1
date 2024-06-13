@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import math
+from typing import Optional
 
 
 class DetrSinePositionEmbedding(nn.Module):
@@ -62,6 +63,20 @@ class DetrLearnedPositionEmbedding(nn.Module):
         pos = pos.unsqueeze(0)
         pos = pos.repeat(pixel_values.shape[0], 1, 1, 1)
         return pos
+
+def expand_mask(mask: torch.Tensor, dtype: torch.dtype, target_len: Optional[int] = None):
+    """
+    Expands attention_mask from `[batch_size, seq_len]` to `[batch_size, 1, target_seq_len, source_seq_len]`.
+    """
+    batch_size, source_len = mask.size()
+    target_len = target_len if target_len is not None else source_len
+
+    expanded_mask = mask[:, None, None, :].expand(batch_size, 1, target_len, source_len).to(dtype)
+
+    inverted_mask = 1.0 - expanded_mask
+
+    return inverted_mask.masked_fill(inverted_mask.bool(), torch.finfo(dtype).min)
+
 
 if __name__ == '__main__':
     pass
