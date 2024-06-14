@@ -130,18 +130,19 @@ class Preprocessor:
     def __call__(self, image, bboxes):
         image, boxes, mask = self.resize(image, bboxes)
         
-        if bboxes.size != 0:
+        if boxes.size != 0:
             bboxes = boxes[:, :4]
             labels = boxes[:, 4]
+
         else:
             bboxes = []
             labels = []
         
-
-        
-        boxes_tensor = torch.tensor(bboxes, dtype=torch.float32)
+        boxes_tensor = torch.tensor(bboxes, dtype=torch.float32) 
         labels_tensor = torch.tensor(labels, dtype=torch.int64)
-        mask_tensor  = torch.tensor(mask, dtype = torch.float32)
+        mask_tensor = torch.tensor(mask, dtype=torch.float32)
+        
+
         image = self.pipeline(image)
         return image, boxes_tensor, labels_tensor, mask_tensor
     

@@ -2,7 +2,14 @@
 
 
 num_queries: 100
-
+aux_loss : False
+num_labels: 91
+class_cost : 1.0
+bbox_cost : 5.0
+giou_cost : 2.0
+eos_coefficient : 0.1
+bbox_loss_coefficient : 5
+giou_loss_coefficient : 2
 
 FeatureExtractorEncoder:
   Backbone: resnet50
@@ -17,10 +24,10 @@ TransformerEncoder:
   num_layers: 6
   num_attention_heads: 8
   ffn_dimension: 2048
-  dropout_rate: 0.1
-  attention_dropout_rate: 0.1
-  activation_dropout_rate: 0.1
-  layer_dropout_rate: 0.1
+  dropout_rate: 0.0
+  attention_dropout_rate: 0.0
+  activation_dropout_rate: 0.0
+  layer_dropout_rate: 0.0
   init_std: 0.02
   xavier_std: 1.0
 
@@ -29,10 +36,10 @@ TransformerDecoder:
   num_layers: 6
   num_attention_heads: 8
   ffn_dimension: 2048
-  dropout_rate: 0.1
-  attention_dropout_rate: 0.1
-  activation_dropout_rate: 0.1
-  layer_dropout_rate: 0.1
+  dropout_rate: 0.0
+  attention_dropout_rate: 0.0
+  activation_dropout_rate: 0.0
+  layer_dropout_rate: 0.0
   init_std: 0.02
   xavier_std: 1.0
 

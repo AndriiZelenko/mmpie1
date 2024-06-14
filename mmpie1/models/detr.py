@@ -3,9 +3,9 @@ import torch
 from torch import nn, Tensor
 from timm import create_model
 from typing import Dict, List, Optional, Tuple, Union
-from mmpie1.models.layers import DetrEncoderLayer, DetrDecoderLayer,  DetrFrozenBatchNorm2d, DetrMHAttentionMap
-from mmpie1.models.utils import DetrLearnedPositionEmbedding, DetrSinePositionEmbedding, expand_mask
-
+from mmpie1.models.layers import DetrEncoderLayer, DetrDecoderLayer,  DetrFrozenBatchNorm2d, DetrMHAttentionMap, DetrMLPPredictionHead
+from mmpie1.models.utils import DetrLearnedPositionEmbedding, DetrSinePositionEmbedding,DetrHungarianMatcher, expand_mask
+from mmpie1.models.losses import DetrLoss
 
 
 # def _expand_mask(mask: torch.Tensor, dtype: torch.dtype, target_len: Optional[int] = None):
@@ -368,6 +368,7 @@ class DetrDetection(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
+        self.aux_loss = cfg.aux_loss
         self.embedded_dimension = cfg.TransformerEncoder.embedded_dimension
         self.Encoder = Encoder(Backbone = cfg.FeatureExtractorEncoder.Backbone,
                                Pretrained = cfg.FeatureExtractorEncoder.Pretrained,
@@ -409,6 +410,14 @@ class DetrDetection(nn.Module):
                                                 xavier_std=cfg.TransformerEncoder.xavier_std
                                                 )
 
+        self.class_labels_classifier = nn.Linear(
+            self.embedded_dimension, cfg.num_labels + 1
+        )  # We add one for the "no object" class
+        self.bbox_predictor = DetrMLPPredictionHead(
+            input_dim=self.embedded_dimension, hidden_dim=self.embedded_dimension, output_dim=4, num_layers=3
+        )
+
+
     def load_from_hf(self, hf_model):
 
         hf_pretrained_encoder = hf_model.model.encoder.state_dict()
@@ -416,15 +425,28 @@ class DetrDetection(nn.Module):
         hf_pretrained_projection = hf_model.model.input_projection.state_dict()
         hf_pretrained_position = hf_model.model.backbone.position_embedding.state_dict()
         hf_pretrained_decoder = hf_model.model.decoder.state_dict()
+        
+        
+        
 
 
         if self.query_position_embeddings.num_embeddings ==  hf_model.model.query_position_embeddings.num_embeddings:
             hf_pretrained_query_position_embeddings = hf_model.model.query_position_embeddings.state_dict()
             res_q_emb = self.query_position_embeddings.load_state_dict(hf_pretrained_query_position_embeddings, strict=True)
+            if self.cfg.num_labels + 1 == hf_model.class_labels_classifier.out_features:
+                res_logits = self.class_labels_classifier.load_state_dict(hf_model.class_labels_classifier.state_dict(), strict=True)
+                res_bbox = self.bbox_predictor.load_state_dict(hf_model.bbox_predictor.state_dict(), strict=True)
+            else:
+                print(f'Number of labels: {self.cfg.num_labels} vs {hf_model.class_labels_classifier.out_features}')
+                res_logits = 'Different shape'
+                res_bbox = 'Different shape'
 
         else:
             print(f'Query Position Embeddings: {self.query_position_embeddings.num_embeddings} vs {hf_model.model.query_position_embeddings.num_embeddings}')
             res_q_emb = 'Different shape'
+
+
+
         res_enc = self.Encoder.load_state_dict(hf_pretrained_backbone, strict=True)
         res_pos_enc = self.PosEncoding.load_state_dict(hf_pretrained_position, strict=True)
         res_inp_proj = self.InputProjection.load_state_dict(hf_pretrained_projection, strict=True)
@@ -438,9 +460,19 @@ class DetrDetection(nn.Module):
         print(f'Transformer Encpder: {res_trans_enc}')
         print(f'Transformer decoder: {res_trans_dec}')
         print(f'Loadded query pos embedding to encoder: {res_q_emb}')
+        print(f'Classification head : {res_logits}')
+        print(f'Detection Head: {res_bbox}')
+
+    @torch.jit.unused
+    def _set_aux_loss(self, outputs_class, outputs_coord):
+        # this is a workaround to make torchscript happy, as torchscript
+        # doesn't support dictionary with non-homogeneous values, such
+        # as a dict having both a Tensor and a list.
+        return [{"logits": a, "pred_boxes": b} for a, b in zip(outputs_class[:-1], outputs_coord[:-1])]
 
 
     def forward(self, pixel_values, pixel_mask = None, 
+                    labels  = None,
                 output_attentions = False, 
                 output_hidden_states = False, 
                 return_dict = False):
@@ -492,9 +524,69 @@ class DetrDetection(nn.Module):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
             )
-        # decoder_outputs = None
-        return encoder_outputs, decoder_outputs, cd
+        
+        if return_dict:
+            decoder_output_data = decoder_outputs['last_hidden_state']
+        else:
+            decoder_output_data = decoder_outputs[0]
 
+        
+        # class logits + predicted bounding boxes
+        logits = self.class_labels_classifier(decoder_output_data)
+        pred_boxes = self.bbox_predictor(decoder_output_data).sigmoid()
+        
+        loss, loss_dict, auxiliary_outputs = None, None, None
+        if labels is not None:
+            # First: create the matcher
+            matcher = DetrHungarianMatcher(
+                class_cost=self.cfg.class_cost, bbox_cost=self.cfg.bbox_cost, giou_cost=self.cfg.giou_cost
+            )
+            # Second: create the criterion
+            losses = ["labels", "boxes", "cardinality"]
+            criterion = DetrLoss(
+                matcher=matcher,
+                num_classes=self.cfg.num_labels,
+                eos_coef=self.cfg.eos_coefficient,
+                losses=losses,
+            )
+            criterion.to(pixel_values.device)
+            # Third: compute the losses, based on outputs and labels
+            outputs_loss = {}
+            outputs_loss["logits"] = logits
+            outputs_loss["pred_boxes"] = pred_boxes
+            if self.cfg.aux_loss:
+                intermediate = decoder_outputs['intermediate_hidden_states'] if return_dict else decoder_outputs[4]
+                outputs_class = self.class_labels_classifier(intermediate)
+                outputs_coord = self.bbox_predictor(intermediate).sigmoid()
+                auxiliary_outputs = self._set_aux_loss(outputs_class, outputs_coord)
+                outputs_loss["auxiliary_outputs"] = auxiliary_outputs
+
+            loss_dict = criterion(outputs_loss, labels)
+            # Fourth: compute total loss, as a weighted sum of the various losses
+            weight_dict = {"loss_ce": 1, "loss_bbox": self.cfg.bbox_loss_coefficient}
+            weight_dict["loss_giou"] = self.cfg.giou_loss_coefficient
+            if self.aux_loss:
+                aux_weight_dict = {}
+                for i in range(self.cfg.decoder_layers - 1):
+                    aux_weight_dict.update({k + f"_{i}": v for k, v in weight_dict.items()})
+                weight_dict.update(aux_weight_dict)
+            loss = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
+
+        if not return_dict:
+            if auxiliary_outputs is not None:
+                output = (logits, pred_boxes) + auxiliary_outputs + decoder_outputs
+            else:
+                output = (logits, pred_boxes) + decoder_outputs
+            return ((loss, loss_dict) + output) if loss is not None else output
+
+
+        else:
+            respo = {'loss': loss, 'loss_dict': loss_dict, 'logits': logits, 'pred_boxes': pred_boxes, 
+                    'aux_out' : auxiliary_outputs, 'last_hidden_state' : decoder_outputs['last_hidden_state'],
+                    'hidden_states': decoder_outputs['hidden_states'], 'attentions': decoder_outputs['attentions'],
+                    'cross_attentions' : decoder_outputs['cross_attentions'], 'encoder_last_hidden_state': encoder_outputs['last_hidden_state'],
+                    'encoder_hidden_states': encoder_outputs['hidden_states'], 'encoder_attentions': encoder_outputs['attentions']}
+            return respo
 
 # inputs_embeds, 
 # attention_mask=None, 

@@ -21,7 +21,7 @@ class CocoDetection(torchvision.datasets.CocoDetection):
         boxes = [t['bbox'] + [t['category_id']] for t in target]
         mask = np.ones((img.size[1], img.size[0]), dtype=np.float32)
         img = np.array(img)
-        boxes = np.array(boxes)
+        boxes = np.array(boxes) 
         
  
         if self.return_original:
@@ -53,9 +53,21 @@ class CocoDetection(torchvision.datasets.CocoDetection):
         else:
             profiling = {}
 
-        out = {'pixel_values': img, 'boxes': boxes, 'labels': labels, 'pixel_mask': mask, 'original_image': original_image, 'original_boxes': original_boxes, 'profiling': profiling}
+        data = {'pixel_values': img, 'pixel_mask': mask,
+                'boxes': boxes, 'class_labels': labels,
+            'image_id': idx, 'original_image': original_image, 'original_boxes': original_boxes, 'profiling': profiling}
 
-        return out
+
+        
+        # {'size': tensor([ 800, 1066]), 
+        #  'image_id': tensor([0]), 
+        #  'class_labels': tensor([0]), 
+        #  'boxes': tensor([[0.5955, 0.5811, 0.2202, 0.3561]]), 
+        #  'area': tensor([3681.5083]), 
+        #  'iscrowd': tensor([0]), 
+        #  'orig_size': tensor([1536, 2048])}
+        # target = {'size': [img.shape[0], img.shape[1]], 'labels': labels, 'boxes': boxes, 'pixel_mask': mask}
+        return data 
     
     # TODO: implement this method
     def calculate_stats(self):

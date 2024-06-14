@@ -25,13 +25,14 @@ def collate_fn(batch):
     boxes = []
     labels = []
     pixel_masks = []
+    targets = []
 
-    for item in batch:
-        image = item['pixel_values']
-        mask = item['pixel_mask']
-        bboxes = item['boxes']
+    for data  in batch:
+        image = data['pixel_values']
+        mask = data['pixel_mask']
+        bboxes = data['boxes']
 
-        
+
         resized_image, scale, padding = resize_and_pad_to_target(image, target_size)
         resized_mask, _, _ = resize_and_pad_to_target(mask.unsqueeze(0), target_size)
         resized_mask = resized_mask.squeeze(0)
@@ -42,24 +43,23 @@ def collate_fn(batch):
             item_labels = torch.full((0,), -1, dtype=torch.int64)  
         else:
             resized_boxes = resize_boxes(bboxes.clone(), scale, padding)
-            item_labels = item['labels']
+            resized_boxes[:, [0, 2]] /= target_size[1]  # Normalize x-coordinates
+            resized_boxes[:, [1, 3]] /= target_size[0]  # Normalize y-coordinates
+            item_labels = data['class_labels']
         
         pixel_values.append(resized_image)
         pixel_masks.append(resized_mask)
         boxes.append(resized_boxes)
         labels.append(item_labels)
+        targets.append({'boxes': resized_boxes, 'class_labels': item_labels})
 
     pixel_values = torch.stack(pixel_values)
     pixel_masks = torch.stack(pixel_masks)
 
     batch_dict = {
         'pixel_values': pixel_values,
-        'boxes': boxes,
-        'labels': labels,
+        'target': targets,
         'pixel_masks': pixel_masks,
-        'original_images': None,
-        'original_boxes': None,
-        'profiling': [item['profiling'] for item in batch]
     }
     
     return batch_dict
