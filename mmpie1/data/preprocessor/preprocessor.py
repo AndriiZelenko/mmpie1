@@ -4,7 +4,7 @@ import torch.nn.functional as TF
 import numpy as np
 import torch
 import cv2
-
+from PIL import Image
 
 
 class ResizeAndPadTransform:
@@ -128,9 +128,14 @@ class Preprocessor:
         ])
 
     def __call__(self, image, bboxes):
+
+        if bboxes is not None:
+            pass
+        else:
+            bboxes = torch.tensor([])
         image, boxes, mask = self.resize(image, bboxes)
         
-        if boxes.size != 0:
+        if boxes is not None:
             bboxes = boxes[:, :4]
             labels = boxes[:, 4]
 
@@ -149,6 +154,22 @@ class Preprocessor:
     def renormalize(self, image):
         return (image * torch.tensor(self.std).view(3, 1, 1)) + torch.tensor(self.mean).view(3, 1, 1)
     
+    def upsample_image(self, image , mask, original_size):
+
+        
+        topil = T.ToPILImage()
+        
+        image = self.renormalize(image)
+        image = topil(image)
+
+        mask = Image.fromarray(mask.numpy().astype(np.uint8)*255)
+        bbox = mask.getbbox()
+
+        cropped_image = image.crop(bbox)
+        resized_image = cropped_image.resize(original_size)
+
+        return resized_image
+
 
 if __name__ == "__main__":
     import time

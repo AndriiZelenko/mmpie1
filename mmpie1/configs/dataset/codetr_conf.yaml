@@ -4,8 +4,11 @@
 BatchSize: 4
 NumWorkers: 4
 
-TrainPath: '/data/diskd/mindtrace/music_magpie/v2/phone_only/25-05-2024/train'
-ValPath: '/data/diskd/mindtrace/music_magpie/v2/phone_only/25-05-2024/val'
+
+TrainPath: '/home/andrii/Transformers-Tutorials/Conditional DETR/VIA2COCO/balloon/train'
+ValPath: '/home/andrii/Transformers-Tutorials/Conditional DETR/VIA2COCO/balloon/val'
+# TrainPath: '/data/diskd/mindtrace/music_magpie/v2/phone_only/25-05-2024/train'
+# ValPath: '/data/diskd/mindtrace/music_magpie/v2/phone_only/25-05-2024/val'
 
 # TrainPath: '/data/diskd/mindtrace/music_magpie/v2/tiled_data/25-05-2024_qced/train'
 # ValPath: '/data/diskd/mindtrace/music_magpie/v2/tiled_data/25-05-2024_qced/val'

@@ -163,3 +163,4 @@ debug_output/
 mmpie1/notebooks/
 outputs/
 .vscode/
+wandb

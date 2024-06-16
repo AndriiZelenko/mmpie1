@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import numpy as np
 import torchvision
 
@@ -7,8 +8,11 @@ import torchvision
 
 class CocoDetection(torchvision.datasets.CocoDetection):
     def __init__(self, img_folder, augmentations=None, preprocessing=None, train=True, profiling_req=False, return_original=False):
-        ann_file = os.path.join(img_folder, "train.json" if train else "val.json")
+        ann_file = os.path.join(img_folder, "labels.json")
         super().__init__(img_folder, ann_file)
+        with open(ann_file, 'r') as f:
+            self.json_file = json.load(f)
+        self.idx_2_class = {v['id']: v['name'] for  v in self.json_file['categories']}
         self.augmentations = augmentations
         self.preprocessing = preprocessing
         self.profiling_req = profiling_req
@@ -17,8 +21,10 @@ class CocoDetection(torchvision.datasets.CocoDetection):
     def __getitem__(self, idx):
         start_time = time.time()
 
-        img, target = super().__getitem__(idx)
-        boxes = [t['bbox'] + [t['category_id']] for t in target]
+        img, labels = super().__getitem__(idx)
+        image_size = img.size
+
+        boxes = [t['bbox'] + [t['category_id']] for t in labels]
         mask = np.ones((img.size[1], img.size[0]), dtype=np.float32)
         img = np.array(img)
         boxes = np.array(boxes) 
@@ -29,7 +35,7 @@ class CocoDetection(torchvision.datasets.CocoDetection):
             original_boxes = boxes.copy()
         else:
             original_image = None
-            original_boxes = None
+            original_boxes = boxes.copy()
 
 
         augmentation_start_time = time.time()
@@ -55,7 +61,8 @@ class CocoDetection(torchvision.datasets.CocoDetection):
 
         data = {'pixel_values': img, 'pixel_mask': mask,
                 'boxes': boxes, 'class_labels': labels,
-            'image_id': idx, 'original_image': original_image, 'original_boxes': original_boxes, 'profiling': profiling}
+                'image_id': idx, 'original_image': original_image, 'original_boxes': original_boxes, 'original_size':image_size, 
+                'profiling': profiling}
 
 
         

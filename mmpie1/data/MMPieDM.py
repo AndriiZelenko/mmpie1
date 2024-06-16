@@ -26,7 +26,7 @@ def collate_fn(batch):
     labels = []
     pixel_masks = []
     targets = []
-
+    
     for data  in batch:
         image = data['pixel_values']
         mask = data['pixel_mask']
@@ -51,10 +51,12 @@ def collate_fn(batch):
         pixel_masks.append(resized_mask)
         boxes.append(resized_boxes)
         labels.append(item_labels)
-        targets.append({'boxes': resized_boxes, 'class_labels': item_labels})
+        targets.append({'boxes': resized_boxes, 'class_labels': item_labels, 
+                        'original_image_size': data['original_size'], 'original_boxes': data['original_boxes'] })
 
     pixel_values = torch.stack(pixel_values)
     pixel_masks = torch.stack(pixel_masks)
+    
 
     batch_dict = {
         'pixel_values': pixel_values,

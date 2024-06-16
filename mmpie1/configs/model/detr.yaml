@@ -3,7 +3,7 @@
 
 num_queries: 100
 aux_loss : False
-num_labels: 91
+num_labels: 1
 class_cost : 1.0
 bbox_cost : 5.0
 giou_cost : 2.0
@@ -24,7 +24,7 @@ TransformerEncoder:
   num_layers: 6
   num_attention_heads: 8
   ffn_dimension: 2048
-  dropout_rate: 0.0
+  dropout_rate: 0.1
   attention_dropout_rate: 0.0
   activation_dropout_rate: 0.0
   layer_dropout_rate: 0.0
@@ -36,7 +36,7 @@ TransformerDecoder:
   num_layers: 6
   num_attention_heads: 8
   ffn_dimension: 2048
-  dropout_rate: 0.0
+  dropout_rate: 0.1
   attention_dropout_rate: 0.0
   activation_dropout_rate: 0.0
   layer_dropout_rate: 0.0

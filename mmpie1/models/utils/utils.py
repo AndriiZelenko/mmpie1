@@ -202,8 +202,6 @@ class DetrHungarianMatcher(nn.Module):
 
         # Compute the L1 cost between boxes
         bbox_cost = torch.cdist(out_bbox, target_bbox, p=1)
-        print(type(out_bbox))
-        print(out_bbox.shape)
         # Compute the giou cost between boxes
         giou_cost = -generalized_box_iou(center_to_corners_format_torch(out_bbox), center_to_corners_format_torch(target_bbox))
 
@@ -342,6 +340,27 @@ def post_process_object_detection(
             results.append({"scores": score, "labels": label, "boxes": box})
 
         return results
+
+
+def postprocess_detr_output(output, ori_image, idx2class, conf_threshold):
+
+    model_output = r2
+
+    scores = output[0]['scores'].cpu().detach()
+    labels = output[0]['labels'].cpu().detach()
+    boxes = output[0]['boxes'].cpu().detach()
+
+    orig_width, orig_height = ori_image.shape[1], ori_image.shape[2]
+
+    def denormalize_boxes(boxes, image_width, image_height):
+        x_min = boxes[:, 0] * image_width
+        y_min = boxes[:, 1] * image_height
+        x_max = boxes[:, 2] * image_width
+        y_max = boxes[:, 3] * image_height
+        return torch.stack([x_min, y_min, x_max, y_max], dim=1)
+
+    # Denormalize the bounding boxes
+    denormalized_boxes = denormalize_boxes(boxes, orig_width, orig_height)
 
 if __name__ == '__main__':
     pass

@@ -1,3 +1,10 @@
+from PIL import Image
+import numpy as np
+import cv2
+from pyexpat import model
+import wandb
+import pytorch_lightning as pl
+import torch
 import math 
 import torch
 from torch import nn, Tensor
@@ -6,6 +13,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from mmpie1.models.layers import DetrEncoderLayer, DetrDecoderLayer,  DetrFrozenBatchNorm2d, DetrMHAttentionMap, DetrMLPPredictionHead
 from mmpie1.models.utils import DetrLearnedPositionEmbedding, DetrSinePositionEmbedding,DetrHungarianMatcher, expand_mask
 from mmpie1.models.losses import DetrLoss
+from mmpie1.models.utils import center_to_corners_format_torch
 
 
 # def _expand_mask(mask: torch.Tensor, dtype: torch.dtype, target_len: Optional[int] = None):
@@ -417,6 +425,36 @@ class DetrDetection(nn.Module):
             input_dim=self.embedded_dimension, hidden_dim=self.embedded_dimension, output_dim=4, num_layers=3
         )
 
+    def freeze_backbone(self, layers = ['layer1', 'layer2', 'layer3']):
+        if layers is not None:
+            for n, p in self.Encoder.named_parameters():
+                p.requires_grad = False
+        else:
+            self.Encoder.freeze_layers(layers)
+
+    def unfreeze_backbone(self, layers = None):
+        if layers is not None:
+            for n, p in self.Encoder.named_parameters():
+                p.requires_grad = True
+        else:
+            self.Encoder.unfreeze_layers(layers)
+    
+    def freeze_encoder(self):
+        for n, p in self.TransformerEncoder.named_parameters():
+            p.requires_grad = False
+    
+    def unfreeze_encoder(self):
+        for n, p in self.TransformerEncoder.named_parameters():
+            p.requires_grad = True
+    
+    def freeze_decoder(self):
+        for n, p in self.TransformerDecoder.named_parameters():
+            p.requires_grad = False
+    
+    def unfreeze_decoder(self):
+        for n, p in self.TransformerDecoder.named_parameters():
+            p.requires_grad = True
+    
 
     def load_from_hf(self, hf_model):
 
@@ -444,8 +482,8 @@ class DetrDetection(nn.Module):
         else:
             print(f'Query Position Embeddings: {self.query_position_embeddings.num_embeddings} vs {hf_model.model.query_position_embeddings.num_embeddings}')
             res_q_emb = 'Different shape'
-
-
+            res_logits = 'Different shape'
+            res_bbox = 'Different shape'
 
         res_enc = self.Encoder.load_state_dict(hf_pretrained_backbone, strict=True)
         res_pos_enc = self.PosEncoding.load_state_dict(hf_pretrained_position, strict=True)
@@ -587,23 +625,222 @@ class DetrDetection(nn.Module):
                     'cross_attentions' : decoder_outputs['cross_attentions'], 'encoder_last_hidden_state': encoder_outputs['last_hidden_state'],
                     'encoder_hidden_states': encoder_outputs['hidden_states'], 'encoder_attentions': encoder_outputs['attentions']}
             return respo
+        
 
-# inputs_embeds, 
-# attention_mask=None, 
-# object_queries=None, 
-# output_attentions=False, 
-# output_hidden_states=False,
-# return_dict = True):
+    def predict(self, pixel_values, pixel_mask, target_sizes, threshold = 0.5):
+        if pixel_mask is None:
+            pixel_mask = torch.ones(pixel_values.shape[:-1], dtype=torch.bool, device=pixel_values.device)
+        out = self.forward(pixel_values, pixel_mask, return_dict=True)
+        out_logits = out['logits']
+        out_bbox = out['pred_boxes']
+
+        prob = nn.functional.softmax(out_logits, -1)
+        scores, labels = prob[..., :-1].max(-1)
+
+        boxes = center_to_corners_format_torch(out_bbox)
+
+        if target_sizes is not None:
+            if isinstance(target_sizes, List):
+                img_h = torch.Tensor([i[1] for i in target_sizes])
+                img_w = torch.Tensor([i[0] for i in target_sizes])
+            else:
+                img_h, img_w = target_sizes.unbind(1)
+
+            scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1).to(boxes.device)
+            boxes = boxes * scale_fct[:, None, :]
+
+        results = []
+        for s, l, b in zip(scores, labels, boxes):
+            score = s[s > threshold]
+            label = l[s > threshold]
+            box = b[s > threshold]
+            results.append({"scores": score, "labels": label, "boxes": box})
 
 
-# def _expand_mask(mask, dtype):
-#     batch_size, seq_len = mask.shape
-#     mask = mask.unsqueeze(1).unsqueeze(1)  # [batch_size, 1, 1, seq_len]
-#     mask = mask.repeat(1, 1, seq_len, 1)  # [batch_size, 1, seq_len, seq_len]
-#     mask = mask.view(batch_size, 1, seq_len, seq_len)
-#     mask = mask.to(dtype=dtype)
-#     return mask
+        return results
 
+    
+
+
+
+class DetrTrainer(pl.LightningModule):
+    def __init__(self, model_cfg, lr, lr_backbone, weight_decay, idx2class, preprocessor):
+        super().__init__()
+        self.idx2class = idx2class
+        self.model_cfg = model_cfg
+        self.lr = lr
+        self.lr_backbone = lr_backbone
+        self.model = DetrDetection(model_cfg)
+        self.preprocessor = preprocessor
+        self.weight_decay = weight_decay
+        print(self.model_cfg.FeatureExtractorEncoder.FreezeLayers)
+        self.model.freeze_backbone(layers = self.model_cfg.FeatureExtractorEncoder.FreezeLayers)
+        self.model.unfreeze_encoder()
+        self.model.unfreeze_decoder()
+
+        for name, param in self.model.named_parameters():
+            print(f'{name} :  {param.requires_grad}')
+
+        
+
+
+    def forward(self, pixel_values, pixel_mask = None):
+        return self.model(pixel_values, pixel_mask)
+    
+    def common_step(self, batch, batch_idx):
+        pixel_values = batch["pixel_values"]
+        pixel_mask = batch["pixel_masks"]
+        # labels = [{k: v.to(self.device) for k, v in t.items()} for t in batch["target"]]
+
+        outputs = self.model(pixel_values=pixel_values, pixel_mask=pixel_mask, labels=batch['target'], return_dict = True)
+
+        loss = outputs['loss']
+        loss_dict = outputs['loss_dict']
+
+        return loss, loss_dict
+    
+    def training_step(self, batch, batch_idx):
+        loss, loss_dict = self.common_step(batch, batch_idx)
+        self.log('train_loss', loss)
+        for k,v in loss_dict.items():
+          self.log("training_" + k, v.item())
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+        loss, loss_dict = self.common_step(batch, batch_idx)
+        self.log('val_loss', loss)
+        for k,v in loss_dict.items():
+          self.log("validation_" + k, v.item())
+
+
+        if batch_idx < 2:  # Log only for the first 5 batches to avoid too much logging
+            self.log_predictions(batch, batch_idx)
+
+        return loss
+
+    def draw_boxes(self, image, boxes, labels, scores=None, color=(0, 0, 255)):
+        """
+        Draw bounding boxes and labels on the image using OpenCV.
+        
+        :param image: NumPy image
+        :param boxes: List of boxes (xmin, ymin, xmax, ymax)
+        :param labels: List of labels for each box
+        :param scores: List of scores for each box (optional)
+        :param color: Color of the bounding box
+        :return: NumPy image with drawn boxes
+        """
+        for i, box in enumerate(boxes):
+            if len(box) == 4:
+                xmin, ymin, xmax, ymax = map(int, box)
+            else:
+                xmin, ymin, xmax, ymax, c = map(int, box)
+                xmax = xmin + xmax
+                ymax = ymin + ymax
+            cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color, 2)
+            label = f"{self.idx2class[labels[i]]}"
+            if scores:
+                label += f" {scores[i]:.2f}"
+            font_scale = 0.7
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            text_size, _ = cv2.getTextSize(label, font, font_scale, 2)
+            text_w, text_h = text_size
+            cv2.rectangle(image, (xmin, ymin - text_h - 4), (xmin + text_w, ymin), color, -1)
+            cv2.putText(image, label, (xmin, ymin - 2), font, font_scale, (255, 255, 255), 2)
+        return image
+    
+    def log_predictions(self, batch, batch_idx):
+
+        target_size  = [t['original_image_size'] for t in batch['target']]
+        ground_truth_boxes = [v['original_boxes'] for v in batch['target']]
+        labels = batch["target"]
+        original_images = []
+        for idx in range(len(target_size)):
+            original_image = self.preprocessor.upsample_image(batch['pixel_values'][idx].cpu(), batch['pixel_masks'][idx].cpu(), target_size[idx])
+            original_images.append(original_image)
+       
+        with torch.no_grad():
+            model_out = self.model.predict(batch['pixel_values'], batch['pixel_masks'], target_size, threshold=0.1)
+        print(model_out[0]['boxes'])
+        # print(model_out)
+        predictions = [{k: v.cpu() for k, v in output.items()} for output in model_out]
+
+        for i in range(len(original_images)):
+
+
+            original_image = original_images[i]
+            pred = predictions[i]
+            gt_boxes = ground_truth_boxes[i]
+
+            gt_labels = labels[i]["class_labels"].cpu().numpy().tolist()
+
+            pred_boxes = pred["boxes"].tolist()
+            pred_labels = pred["labels"].tolist()
+            pred_scores = pred["scores"].tolist()
+
+            image_np = np.array(original_image)
+
+            # Draw predicted boxes
+            image_with_pred_boxes = self.draw_boxes(image_np.copy(), pred_boxes, pred_labels, pred_scores, color=(0, 0, 255))
+            # Draw ground truth boxes
+            image_with_gt_boxes = self.draw_boxes(image_np.copy(), gt_boxes, gt_labels, color=(255, 0, 0))
+
+            # Convert back to PIL image
+            image_with_pred_boxes = Image.fromarray(image_with_pred_boxes)
+            image_with_gt_boxes = Image.fromarray(image_with_gt_boxes)
+
+            wandb.log({
+                f"validation_pred_image_{i}": wandb.Image(image_with_pred_boxes),
+                f"validation_gt_image_{i}": wandb.Image(image_with_gt_boxes)
+            })
+            # original_image = original_images[i]
+            # pred = predictions[i]
+            # gt_boxes = ground_truth_boxes[i]
+            # gt_labels = batch['target'][i]['class_labels']
+
+            
+            # # img = wandb.Image(original_image, 
+            # #         boxes={
+            # #                 "predictions": {
+            # #                     "box_data": [
+            # #                         {
+            # #                             "position": {"minX": box[0], "maxX": box[2], "minY": box[1], "maxY": box[3]},
+            # #                             "class_id": int(pred["labels"][i]),
+            # #                             "box_caption": self.idx2class[int(pred["labels"][i])],
+            # #                             "scores": {"score": float(pred["scores"][i])},
+            # #                         }
+            # #                         for i, box in enumerate(pred["boxes"].tolist())
+            # #                     ],
+            # #                     "class_labels": self.idx2class,
+            # #                 },
+            # #                 "ground_truth": {
+            # #                     "box_data": [
+            # #                         {
+            # #                             "position": {"minX": float(box[0]), "maxX": float(box[0] + box[2]), 
+            # #                                     "minY": float(box[1]), "maxY": float(box[1] + box[3])},
+            # #                             "class_id": int(label),
+            # #                             "box_caption": self.idx2class[int(label)],
+            # #                         }
+            # #                         for label, box in zip(gt_labels, gt_boxes)
+            # #                     ],
+            # #                     "class_labels": self.idx2class,
+            # #                 },
+            # #             }
+            # #                 )
+            # # wandb.log({f"image_{i}": img})
+
+
+    def configure_optimizers(self):
+        param_dicts = [
+              {"params": [p for n, p in self.named_parameters() if "backbone" not in n and p.requires_grad]},
+              {
+                  "params": [p for n, p in self.named_parameters() if "backbone" in n and p.requires_grad],
+                  "lr": self.lr_backbone,
+              },
+        ]
+        optimizer = torch.optim.AdamW(param_dicts, lr=self.lr,
+                                  weight_decay=self.weight_decay)
+
+        return optimizer
 
 if __name__ == '__main__':
     pass
